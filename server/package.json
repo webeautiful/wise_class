@@ -1,0 +1,33 @@
+{
+  "name": "wise_class",
+  "version": "1.0.0",
+  "description": "wise class server",
+  "main": "index.js",
+  "scripts": {
+    "test": "webpack"
+  },
+  "dependencies": {
+    "MD5": "^1.3.0",
+    "express": "^4.10.2",
+    "request": "^2.69.0",
+    "socket.io": "^1.4.5",
+    "socket.io-cookie": "0.0.1",
+    "socketio-auth": "0.0.5",
+    "underscore": "^1.8.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/webeautiful/wise_class.git"
+  },
+  "keywords": [
+    "node",
+    "socketio",
+    "realtime"
+  ],
+  "author": "webeautiful",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/webeautiful/wise_class/issues"
+  },
+  "homepage": "https://github.com/webeautiful/wise_class#readme"
+}
