@@ -189,10 +189,17 @@ function notice(roomId) {
 //    postAuthenticate: postAuthenticate,
 //    timeout: 10000
 //});
-io.on('connection', function(){
+io.on('connection', function(client){
   console.log('ok!');
+
+  client.on('api.getSubjects', (roomId) => {
+    API.getSubjects({rid: roomId}, (data) => {
+      io.emit('api.getSubjects', data);
+    })
+  })
+
 });
 
-http.listen(3000, function () {
-    console.log('listening on *:3000');
+http.listen(3000, 'wiseclass.pigai.org', () => {
+    console.log('listening on wiseclass.pigai.org:3000');
 });
