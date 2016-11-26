@@ -1,5 +1,5 @@
 var http = require('http')
-var _ = require('underscore')
+var _ = require('lodash')
 
 function fetch(options, onSuccess, onError){
     var options = Object.assign({

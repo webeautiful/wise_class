@@ -4,22 +4,26 @@ var http = require('http').Server(app);
 var io = require('socket.io')(http);
 var md5 = require('MD5');
 var auth = require('socketio-auth');
-var _ = require('underscore');
+var _ = require('lodash');
 var API = require('./api');
 
-function authenticate(socket, data, callback) {
-    if (!data || !data.k) {
+function authenticate(socket, roomId, callback) {
+    var cookieStr = socket.request.headers.cookie;
+    var user = parseCookie('_JUKU_USER', cookieStr);
+    user = JSON.parse(user);
+
+    if (!user || !user.k) {
         return callback(new Error("data invalid"));
     }
     const privateKey = 'ciKu-u~Jkuu!';
-    let key = md5([data.i, privateKey, data.u].join(''));
-    if(key == data.k){
-        API.getImg(~~data.i, (img) => {
-            data.img = img || getDefaultImg(data.ts)
-            callback(null, data)
+    let key = md5([user.i, privateKey, user.u].join(''));
+    if(key == user.k){
+        API.getImg(~~user.i, (img) => {
+            user.img = img || getDefaultImg(user.ts)
+            callback(user, user)
         }, () => {
-            data.img = getDefaultImg(data.ts)
-            callback(null, data)
+            user.img = getDefaultImg(user.ts)
+            callback(null, user)
         })
     }else{
         callback(null, {})
@@ -30,102 +34,22 @@ function getDefaultImg(ts) {
       'http://www.pigai.org/zt/openclass/static/img/teacher.png':
       'http://www.pigai.org/zt/openclass/static/img/student.png'
 }
-function postAuthenticate(socket, user) {
-    const roomId = user.room;
-    socket.client.user = user;
-    socket.join(roomId);
+function postAuthenticate(socket, roomId) {
+    //const roomId = user.room;
+    //socket.client.user = user;
+    //socket.join(roomId);
 
-    socket.on('disconnect', notice.bind(null, roomId));
-    socket.on('vote', (data) => {
-        vote(data, user)
-    });
-    socket.on("getMessage", (d, func) => {
-        func(d);
-    });
-    socket.on('api.getWordList', function (type, callback) {
-        API.getWordList({rid: roomId, wordType: type}, (data) => {
-            callback(data)
-        }, (e) => {
-            socket.emit('api.getWordList.error', e)
-        });
-    });
-    socket.on('api.searchSents', (word, callback) => {
-        API.searchSents({rid: roomId, word: word}, (data) => {
-            callback(data)
-        }, (e) => {
-            socket.emit('api.searchSents.error', e)
-        });
-    });
-    socket.on('api.addSubject', (subject) => {
-        subject.timeStamp = +new Date();
-        subject.endTimeStamp = +new Date() + 86400000;
-        subject.requestId = roomId;
-        subject.userId = user.i;
-        API.addSubject(subject, (data) => {
-            io.in(roomId).emit('new.subject', data);
-        }, (e) => {
-        });
-    });
-    socket.on('api.updateSubject', (subject) => {
-        API.updateSubject(subject, (data) => {
-            io.in(roomId).emit('subject.update', data);
-        }, (e) => {
-        });
-    });
-    socket.on('api.searchSents', (word, callback) => {
-        API.searchSents({rid: roomId, word: word}, (data) => {
-            callback(data)
-        }, (e) => {
-            socket.emit('api.searchSents.error', e)
-        });
-    });
-    socket.on('api.addVote', (subject) => {
-        subject.requestId = roomId;
-        subject.userId = user.i;
-        API.addVote(subject, (data) => {
-            io.in(roomId).emit('new.vote', data);
-        }, (e) => {
-        });
-    });
-    socket.on('api.getOrgDoc', () => {
-        API.getOrgDoc({rid: roomId}, (data) => {
-            io.in(roomId).emit('orgdoc.update', data);
-        }, (e) => {
-        });
-    });
-    socket.on('api.getErrorCollection', () => {
-        API.getErrorCollection({rid: roomId}, (data) => {
-            io.in(roomId).emit('errorcollection.update', data);
-        }, (e) => {
-        });
-    });
-    socket.on('api.getErrorRank', (callback) => {
-        API.getErrorRank({rid: roomId}, (data) => {
-            callback(data)
-        }, (e) => {
-        });
-    });
+    //socket.on('disconnect', notice.bind(null, roomId));
+
     socket.on('api.getSubjects', (callback) => {
-        API.getSubjects({rid: roomId}, (data) => {
-            callback(data)
-        }, (e) => {
-        });
+      API.getSubjects({rid: roomId}, (data) => {
+        callback(data)
+      }, (e) => {
+      });
     });
-    socket.on('api.getTeacherInfo', (uid, callback) => {
-        API.getUserInfo(uid, (data) => {
-            callback(data)
-        }, (e) => {
-        });
-    });
-    socket.on('api.getVotes', (callback) => {
-        API.getVotes({rid: roomId}, (data) => {
-            callback(data)
-        }, (e) => {
-        });
-    });
-    //initSubjects(roomId);
-    //initVotes(roomId);
-    notice(roomId);
+    ////initSubjects(roomId);
+    ////initVotes(roomId);
+    //notice(roomId);
 }
 function initSubjects(roomId) {
     API.getSubjects({rid: roomId}, (data) => {
@@ -184,21 +108,41 @@ function notice(roomId) {
     });
     io.in(roomId).emit('student.changed', _.pluck(students, 'u2'));
 }
-//auth(io, {
-//    authenticate: authenticate,
-//    postAuthenticate: postAuthenticate,
-//    timeout: 10000
-//});
-io.on('connection', function(client){
-  console.log('ok!');
 
-  client.on('api.getSubjects', (roomId) => {
-    API.getSubjects({rid: roomId}, (data) => {
-      io.emit('api.getSubjects', data);
-    })
-  })
+function parseCookie(key, cookie) {
+  var reg = new RegExp(key+'=([^;]*);');
+  var res = cookie.match(reg);
+  if(res && res[1]) {
+    return decodeURIComponent(res[1]);
+  }
+  return '';
+}
 
+auth(io, {
+    authenticate: authenticate,
+    postAuthenticate: postAuthenticate,
+    timeout: 10000
 });
+app.get('/home', (request, response) => {
+  var roomId = request.query.roomId || 579361;
+  API.getSubjects({rid: roomId}, (data) => {
+    response.send(data);
+  });
+});
+
+//io.on('connection', function(client){
+//  console.log('ok!');
+//
+//  client.on('api.getSubjects', (roomId) => {
+//    var cookieStr = client.request.headers.cookie;
+//    var user = parseCookie('_JUKU_USER', cookieStr);
+//    user = JSON.parse(user);
+//    io.emit('api.getSubjects', null, user);
+//    //API.getSubjects({rid: roomId}, (data) => {
+//    //  io.emit('api.getSubjects', data, client.request.headers.cookie);
+//    //})
+//  })
+//});
 
 http.listen(3000, 'wiseclass.pigai.org', () => {
     console.log('listening on wiseclass.pigai.org:3000');

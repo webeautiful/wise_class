@@ -1,5 +1,5 @@
 var fetch = require('./fetch');
-var _ = require('underscore')
+var _ = require('lodash')
 
 var postData = {
     count: 30,
@@ -7,6 +7,20 @@ var postData = {
     wordType: "v"
 };
 var exports = {};
+
+exports.getImg = function(uid, onSuccess, onError){
+  var cbSuccess = (response) => {
+    var info = response.infos[0] || {}; 
+    onSuccess(info.img || '');
+  };  
+  fetch({
+    path: '/openclass/api/user/info/uids',
+    data: uid,
+    headers: {
+      'Content-type': 'text/plain'
+    }   
+  }, cbSuccess, onError);
+};
 
 exports.getSubjects = function(options, onSuccess, onError){
     var cbSuccess = (response) => {
