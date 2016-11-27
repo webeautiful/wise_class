@@ -7,142 +7,92 @@ var auth = require('socketio-auth');
 var _ = require('lodash');
 var API = require('./api');
 
-function authenticate(socket, roomId, callback) {
-    var cookieStr = socket.request.headers.cookie;
-    var user = parseCookie('_JUKU_USER', cookieStr);
-    user = JSON.parse(user);
-
-    if (!user || !user.k) {
-        return callback(new Error("data invalid"));
-    }
-    const privateKey = 'ciKu-u~Jkuu!';
-    let key = md5([user.i, privateKey, user.u].join(''));
-    if(key == user.k){
-        API.getImg(~~user.i, (img) => {
-            user.img = img || getDefaultImg(user.ts)
-            callback(user, user)
-        }, () => {
-            user.img = getDefaultImg(user.ts)
-            callback(null, user)
-        })
-    }else{
-        callback(null, {})
-    }
+function authenticate(socket, user, callback) {
+  if (!user || !user.k) {
+    return callback(new Error("data invalid"));
+  }
+  const privateKey = 'ciKu-u~Jkuu!';
+  let key = md5([user.i, privateKey, user.u].join(''));
+  if(key == user.k){
+    API.getImg(~~user.i, (img) => {
+      user.img = img || getDefaultImg(user.ts)
+      callback(user, user)
+    }, () => {
+      user.img = getDefaultImg(user.ts)
+      callback(null, user)
+    })
+  }else{
+    callback(null, {})
+  }
 }
+
 function getDefaultImg(ts) {
-    return ts === 1 ?
-      'http://www.pigai.org/zt/openclass/static/img/teacher.png':
-      'http://www.pigai.org/zt/openclass/static/img/student.png'
+  return ts === 1 ?
+    'http://www.pigai.org/zt/openclass/static/img/teacher.png':
+    'http://www.pigai.org/zt/openclass/static/img/student.png'
 }
-function postAuthenticate(socket, roomId) {
-    //const roomId = user.room;
-    //socket.client.user = user;
-    //socket.join(roomId);
 
-    //socket.on('disconnect', notice.bind(null, roomId));
+function postAuthenticate(socket, user) {
+  const roomId = user.room;
+  socket.client.user = user;
+  socket.join(roomId);
 
-    socket.on('api.getSubjects', (callback) => {
-      API.getSubjects({rid: roomId}, (data) => {
-        callback(data)
-      }, (e) => {
-      });
-    });
-    ////initSubjects(roomId);
-    ////initVotes(roomId);
-    //notice(roomId);
-}
-function initSubjects(roomId) {
+  socket.on('disconnect', notice.bind(null, roomId));
+
+  socket.on('api.getSubjects', (callback) => {
     API.getSubjects({rid: roomId}, (data) => {
-        io.in(roomId).emit('subjects.init', {subjects: data});
+      callback(data)
     }, (e) => {
+    });
+  });
 
-    })
+  notice(roomId);
 }
-function initVotes(roomId) {
-    API.getVotes({rid: roomId}, (data) => {
-        io.in(roomId).emit('votes.init', {votes: data});
-    }, (e) => {
 
-    })
-}
-function vote(data, user) {
-    const idx = data.idx || 0;
-    if (subjects.find(subject => subject.idx == idx)) {
-        votes[idx] = votes[idx] || []
-        if (!votes[idx].find(item => item.uid == user.i)) {
-            const newVote = {
-                uid: user.i,
-                name: user.u2,
-                vote: data.votes,
-                time: +new Date(),
-                img: ''
-            }
-            votes[idx].push(newVote)
-            io.in(user.room).emit('new vote', {idx, vote: newVote})
-        }
-    }
-}
 function notice(roomId) {
     if (roomId <= 0) {
-        return;
+      return;
     }
     var students = [];
     var ids = [];
     var room = io.nsps['/'].adapter.rooms[roomId];
-    if (!room) {
-        return;
-    }
-    var sockets = Object.keys(room.sockets);
-    _.each(sockets, function (socketId) {
+
+    io.of('/').in(roomId).clients(function(error, clients){
+      if (error) throw error;
+      if (!(clients.length>0)) return;
+
+      // clients => [Anw2LatarvGVVXEIAAAD]
+      _.each(clients, function (socketId) {
         var _socket = io.sockets.connected[socketId];
         if(!_socket){
-            return ;
+          return ;
         }
         var user = _socket.client.user;
-        if (!_.contains(ids, user.i)) {
-            ids.push(user.i);
-            if (user.ts == 2) {
-                students.push(_socket.client.user);
-            }
+        if (!_.includes(ids, user.i)) {
+          ids.push(user.i);
+          if (user.ts == 2) {
+            students.push(_socket.client.user);
+          }
         }
-    });
-    io.in(roomId).emit('student.changed', _.pluck(students, 'u2'));
-}
+      });
 
-function parseCookie(key, cookie) {
-  var reg = new RegExp(key+'=([^;]*);');
-  var res = cookie.match(reg);
-  if(res && res[1]) {
-    return decodeURIComponent(res[1]);
-  }
-  return '';
+      io.in(roomId).emit('student.changed', _.map(students, 'u2'));
+    });
 }
 
 auth(io, {
-    authenticate: authenticate,
-    postAuthenticate: postAuthenticate,
-    timeout: 10000
+  authenticate: authenticate,
+  postAuthenticate: postAuthenticate,
+  timeout: 10000
 });
+
+//express api
 app.get('/home', (request, response) => {
   var roomId = request.query.roomId || 579361;
   API.getSubjects({rid: roomId}, (data) => {
     response.send(data);
   });
 });
-
-//io.on('connection', function(client){
-//  console.log('ok!');
-//
-//  client.on('api.getSubjects', (roomId) => {
-//    var cookieStr = client.request.headers.cookie;
-//    var user = parseCookie('_JUKU_USER', cookieStr);
-//    user = JSON.parse(user);
-//    io.emit('api.getSubjects', null, user);
-//    //API.getSubjects({rid: roomId}, (data) => {
-//    //  io.emit('api.getSubjects', data, client.request.headers.cookie);
-//    //})
-//  })
-//});
 
 http.listen(3000, 'wiseclass.pigai.org', () => {
     console.log('listening on wiseclass.pigai.org:3000');

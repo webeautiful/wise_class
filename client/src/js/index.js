@@ -1,19 +1,23 @@
-import {socketUrl} from './config'
-import io from 'socket.io-client'
+import auth from './libs/auth'
+import socket from './libs/socket'
 
-const socket = io(socketUrl);
+const roomId = 579361;
 
 socket.on('connect', () => {
-  console.log('ok1');
-
-  socket.emit('authentication', 579361);
-  socket.on('authenticated', (data) => {
-    console.log(data)
-    socket.emit('api.getSubjects', (data) => {
-      console.log(data);
-    });
-  });
-
+  console.log('ok');
 });
+
+auth.emit(roomId);
+socket.on('authenticated', (user) => {
+  console.log(user)
+  socket.emit('api.getSubjects', (data) => {
+    console.log(data);
+  });
+});
+
+
+socket.on('student.changed', (students) => {
+  console.log(students);
+})
 
 socket.on('disconnect', () => {});
