@@ -1,5 +1,7 @@
 var path = require('path');
 var webpack = require('webpack');
+var CopyWebpackPlugin = require('copy-webpack-plugin');
+//var CommonsChunkPlugin = webpack.optimize.CommonsChunkPlugin;
 
 module.exports = {
   entry: {
@@ -13,7 +15,7 @@ module.exports = {
   module: {
     loaders: [
       {
-        test: /.jsx?$/,
+        test: /\.jsx?$/,
         loader: 'babel-loader',
         exclude: /node_modules/,
         query: {
@@ -21,5 +23,8 @@ module.exports = {
         }
       }
     ]
-  }
+  },
+  plugins: [
+    new CopyWebpackPlugin([{from: 'src/templates'}])//默认输出到dist
+  ]
 };
