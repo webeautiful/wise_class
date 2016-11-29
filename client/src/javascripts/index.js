@@ -2,17 +2,19 @@ import 'angular'
 import uiRouter from 'angular-ui-router'
 import routing from './config.router'
 import templateCacheConfig from './configs/tempate-cache'
+import register from './register'
 
 import controllers from './controllers'
+import services from './services'
 
 const app = angular.module('app', [
   uiRouter
 ])
 
 // services
-//for (const key in services) {
-//  app.service(key[0].toLowerCase() + key.slice(1), services[key])
-//}
+for (const key in services) {
+  app.service(key[0].toLowerCase() + key.slice(1), services[key])
+}
 
 // configs
 
