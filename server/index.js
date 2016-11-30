@@ -55,7 +55,6 @@ function notice(roomId) {
     }
     var students = [];
     var ids = [];
-    var room = io.nsps['/'].adapter.rooms[roomId];
 
     io.of('/').in(roomId).clients(function(error, clients){
       if (error) throw error;

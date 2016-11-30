@@ -8,12 +8,13 @@ class SocketService {
 
   init() {
     const socketUrl =  'http://wiseclass.pigai.org:3000';
-    this.socket = io(socketUrl);
+    const nsp = '/';
+    this.socket = io(socketUrl+nsp);
   }
 
   connect(cb) {
     this.socket.on('connect', () => {
-      console.log('ok');
+      console.log('server connected.');
       cb();
     });
   }
