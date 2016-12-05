@@ -9,7 +9,7 @@
 </head>
 <body ng-app="app" ng-controller="TopCtrl as tc">
 <div id="container">
-  <header>{{tc.data}}</header>
+  <header ng-bind="tc.data"></header>
   <div ui-view></div>
   <footer></footer>
 </div>
