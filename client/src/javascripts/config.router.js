@@ -7,6 +7,11 @@ function routing($stateProvider, $urlRouterProvider) {
     templateUrl: 'teacher-realtime.html',
     controller: 'TeacherRealtimeCtrl as trc'
   })
+    .state('chart', {
+      url: '/chart',
+      templateUrl: 'chart.html',
+      controller: 'ChartCtrl as cc'
+    })
     .state('admin', {
       url: '/admin',
       abstract: true,
